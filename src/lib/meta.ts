@@ -51,13 +51,16 @@ export async function checkBm(bmId: string, token: string) {
 export async function listBmAccounts(bmId: string, token: string) {
   const fields = { fields: "id,name,currency,timezone_name,account_status", limit: "200" };
   type A = { id: string; name: string; currency: string; timezone_name: string; account_status: number };
-  const [owned, client] = await Promise.all([
+  const [owned, client, mine] = await Promise.all([
     graphAll<A>(`/${bmId}/owned_ad_accounts`, token, fields),
     graphAll<A>(`/${bmId}/client_ad_accounts`, token, fields).catch(() => [] as A[]),
+    graphAll<A>(`/me/adaccounts`, token, fields).catch(() => [] as A[]),
   ]);
+  // o BM pode ter contas que não foram atribuídas ao usuário do sistema: entram, mas sem acesso (inativas)
+  const access = new Set(mine.map((a) => a.id));
   const seen = new Map<string, A>();
-  for (const a of [...owned, ...client]) seen.set(a.id, a);
-  return [...seen.values()].map((a) => ({ id: a.id, name: a.name, currency: a.currency, timezone: a.timezone_name, status: STATUS[a.account_status] ?? String(a.account_status) }));
+  for (const a of [...owned, ...client, ...mine]) seen.set(a.id, a);
+  return [...seen.values()].map((a) => ({ id: a.id, name: a.name, currency: a.currency, timezone: a.timezone_name, status: STATUS[a.account_status] ?? String(a.account_status), hasAccess: access.has(a.id) }));
 }
 
 export async function saveBm(input: { id: string; name: string; token: string; by: string }) {
@@ -87,9 +90,10 @@ export async function importAccounts(bmId: string) {
   const { data: existing } = await db().from("meta_ad_accounts").select("id").in("id", accounts.map((a) => a.id));
   const known = new Set((existing ?? []).map((e) => e.id));
   for (const a of accounts) {
-    const row = { id: a.id, bm_id: bmId, name: a.name, currency: a.currency, timezone: a.timezone, status: a.status };
-    if (known.has(a.id)) await db().from("meta_ad_accounts").update(row).eq("id", a.id);
-    else await db().from("meta_ad_accounts").insert({ ...row, active: true });
+    const status = a.hasAccess ? a.status : `${a.status} · sem acesso do usuário do sistema`;
+    const row = { id: a.id, bm_id: bmId, name: a.name, currency: a.currency, timezone: a.timezone, status };
+    if (known.has(a.id)) await db().from("meta_ad_accounts").update(a.hasAccess ? row : { ...row, active: false }).eq("id", a.id);
+    else await db().from("meta_ad_accounts").insert({ ...row, active: a.hasAccess });
   }
   return accounts.length;
 }
