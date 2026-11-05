@@ -3,8 +3,8 @@
 Meta Ads + Google Ads → Supabase, com painel, **API REST**, **servidor MCP** (Claude/Cursor), **IA** (Claude) e **ClickUp**.
 Lógica de anúncios baseada no `shortdrama` (System User da Meta + conta de serviço do Google, sync horário).
 
-- Painel: https://ads.fonilgroup.com.br (login por código no e-mail)
-- MCP: `https://ads.fonilgroup.com.br/api/mcp` (Authorization: Bearer fads_…) — chaves em **API & MCP**
+- Painel: https://trafego.fonilgroup.com.br (login por código no e-mail)
+- MCP: `https://trafego.fonilgroup.com.br/api/mcp` (Authorization: Bearer fads_…) — chaves em **API & MCP**
 - REST: `/api/v1/tools/_list`, `/api/v1/performance`, `/api/v1/accounts`, `/api/v1/clients`, `/api/v1/sync`, `/api/v1/tools/{nome}`
 
 ## Stack

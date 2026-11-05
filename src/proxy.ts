@@ -3,6 +3,11 @@ import { NextResponse, type NextRequest } from "next/server";
 
 /** renova a sessão do Supabase e manda quem não está logado para /login (APIs têm autenticação própria) */
 export async function proxy(req: NextRequest) {
+  // o antigo ads.fonilgroup.com.br é bloqueado por bloqueadores de anúncio: manda para o domínio oficial
+  const official = process.env.APP_URL ? new URL(process.env.APP_URL).host : null;
+  if (official && req.headers.get("host")?.startsWith("ads.") && req.headers.get("host") !== official) {
+    return NextResponse.redirect(new URL(req.nextUrl.pathname + req.nextUrl.search, process.env.APP_URL), 308);
+  }
   let res = NextResponse.next({ request: req });
   const sb = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookies: {
