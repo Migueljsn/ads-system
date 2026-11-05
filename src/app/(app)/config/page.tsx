@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/page-header";
 import { ActionForm } from "@/components/action-form";
 import { aiEnabled } from "@/lib/ai";
 import { requireUser } from "@/lib/auth";
@@ -16,7 +17,7 @@ export default async function Config() {
   ] as const;
   return (
     <>
-      <h1 className="mb-4 text-xl font-semibold">Configurações</h1>
+      <PageHeader title="Configurações" subtitle="Equipe, ClickUp e relatórios automáticos." />
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="card">
           <ActionForm action={saveSettings}>
@@ -28,8 +29,8 @@ export default async function Config() {
           </ActionForm>
         </div>
         <div className="card">
-          <h2 className="mb-2 font-medium">Integrações</h2>
-          {status.map(([n, ok]) => <div key={n} className="flex justify-between border-b border-line py-2 text-sm last:border-0"><span>{n}</span><span className={ok ? "text-emerald-500" : "text-muted"}>{ok ? "ok" : "não configurado"}</span></div>)}
+          <h2 className="card-title">Integrações</h2>
+          {status.map(([n, ok]) => <div key={n} className="flex justify-between border-b border-line py-2 text-sm last:border-0"><span>{n}</span><span className={ok ? "text-good" : "text-muted"}>{ok ? "ok" : "não configurado"}</span></div>)}
           <p className="mt-3 text-xs text-muted">Sincronização automática: a cada hora (pg_cron do Supabase → /api/cron/sync).</p>
         </div>
       </div>

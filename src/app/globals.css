@@ -1,39 +1,63 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f6f7f9;
-  --panel: #ffffff;
-  --ink: #0f172a;
-  --muted: #64748b;
-  --line: #e2e8f0;
-  --brand: #4f46e5;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b0d12;
-    --panel: #12151c;
-    --ink: #e5e7eb;
-    --muted: #94a3b8;
-    --line: #232837;
-    --brand: #818cf8;
-  }
+  --bg: #07080c;
+  --panel: #0e1016;
+  --panel-2: #141720;
+  --ink: #eef0f6;
+  --muted: #8b90a3;
+  --line: rgba(255, 255, 255, 0.07);
+  --brand: #7c5cff;
+  --brand-2: #22d3ee;
+  --good: #34d399;
+  --bad: #f87171;
+  --meta: #4f8cff;
+  --google: #fbbc05;
 }
 @theme inline {
   --color-bg: var(--bg);
   --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
   --color-ink: var(--ink);
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-brand: var(--brand);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-brand-2: var(--brand-2);
+  --color-good: var(--good);
+  --color-bad: var(--bad);
+  --color-meta: var(--meta);
+  --color-google: var(--google);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
-body { background: var(--bg); color: var(--ink); font-family: var(--font-sans); }
-.card { @apply rounded-xl border border-line bg-panel p-4; }
-.btn { @apply inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50; }
-.btn-ghost { @apply inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-sm hover:bg-black/5 dark:hover:bg-white/5; }
-.input { @apply w-full rounded-lg border border-line bg-transparent px-3 py-1.5 text-sm outline-none focus:border-brand; }
-.label { @apply mb-1 block text-xs font-medium text-muted; }
-table.t { @apply w-full text-sm; }
-table.t th { @apply border-b border-line px-2 py-2 text-left text-xs font-medium text-muted whitespace-nowrap; }
-table.t td { @apply border-b border-line px-2 py-2 whitespace-nowrap; }
+html { color-scheme: dark; }
+body {
+  background: radial-gradient(1200px 600px at 80% -10%, rgba(124, 92, 255, 0.10), transparent 60%), radial-gradient(900px 500px at -10% 110%, rgba(34, 211, 238, 0.06), transparent 60%), var(--bg);
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
+}
+::selection { background: rgba(124, 92, 255, 0.35); }
+.card { @apply rounded-2xl border border-line bg-panel/80 p-5 shadow-[0_1px_0_rgba(255,255,255,0.03)_inset] backdrop-blur; }
+.card-title { @apply mb-3 text-[13px] font-semibold tracking-wide text-muted uppercase; }
+.btn { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand to-[#9b7bff] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-brand/20 transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50; }
+.btn-ghost { @apply inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-white/[0.03] px-3 py-1.5 text-sm text-ink transition hover:bg-white/[0.07]; }
+.input { @apply w-full rounded-xl border border-line bg-white/[0.03] px-3 py-2 text-sm text-ink outline-none transition placeholder:text-muted/60 focus:border-brand/60 focus:bg-white/[0.05] focus:ring-4 focus:ring-brand/15; }
+select.input {
+  appearance: none;
+  padding-right: 2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%238b90a3' stroke-width='2'%3E%3Cpath d='M3 4.5l3 3 3-3'/%3E%3C/svg%3E");
+  background-size: 12px;
+  background-position: right 10px center;
+  background-repeat: no-repeat;
+}
+select.input option { background: #141720; }
+.label { @apply mb-1.5 block text-xs font-medium text-muted; }
+.badge { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold; }
+table.t { @apply w-full border-separate border-spacing-0 text-sm; }
+table.t thead th { @apply sticky top-0 border-b border-line bg-panel px-3 py-2.5 text-left text-[11px] font-semibold tracking-wide whitespace-nowrap text-muted uppercase; }
+table.t tbody td { @apply border-b border-line px-3 py-2.5 whitespace-nowrap; }
+table.t tbody tr { @apply transition-colors hover:bg-white/[0.025]; }
 table.t td.n, table.t th.n { @apply text-right tabular-nums; }
+table.t tr.total td { @apply border-b-0 bg-white/[0.03] font-semibold; }
+code { @apply rounded-md bg-white/[0.06] px-1.5 py-0.5 font-mono text-[12px]; }

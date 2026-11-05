@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/page-header";
 import { ActionForm } from "@/components/action-form";
 import { allLists } from "@/lib/clickup";
 import { money } from "@/lib/format";
@@ -11,7 +12,7 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
   const listName = new Map(lists.map((l) => [l.id, l.name]));
   return (
     <>
-      <h1 className="mb-4 text-xl font-semibold">Clientes</h1>
+      <PageHeader title="Clientes" subtitle="Agrupe contas por cliente e defina a lista do ClickUp de cada um." />
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="card lg:col-span-2 overflow-x-auto">
           <table className="t">
@@ -23,7 +24,7 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
                   <td className="text-xs">{c.clickup_list_id ? listName.get(c.clickup_list_id) ?? c.clickup_list_id : "—"}</td>
                   <td className="n">{money(c.monthly_budget)}</td>
                   <td className="flex gap-2"><a href={`/clientes?edit=${c.id}`} className="text-xs text-brand">editar</a><a href={`/?client=${c.id}`} className="text-xs text-brand">painel</a>
-                    <form action={removeClient}><input type="hidden" name="id" value={c.id} /><button className="text-xs text-red-500">excluir</button></form></td>
+                    <form action={removeClient}><input type="hidden" name="id" value={c.id} /><button className="text-xs text-bad">excluir</button></form></td>
                 </tr>
               ))}
             </tbody>
@@ -31,7 +32,7 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
           {!clients?.length && <p className="py-4 text-center text-sm text-muted">Nenhum cliente. Crie ao lado e vincule as contas em “Contas”.</p>}
         </div>
         <div className="card">
-          <h2 className="mb-2 font-medium">{editing ? "Editar cliente" : "Novo cliente"}</h2>
+          <h2 className="card-title">{editing ? "Editar cliente" : "Novo cliente"}</h2>
           <ActionForm action={saveClient} key={editing?.id ?? "new"}>
             {editing && <input type="hidden" name="id" value={editing.id} />}
             <label className="label">Nome</label><input name="name" defaultValue={editing?.name} className="input mb-2" required />

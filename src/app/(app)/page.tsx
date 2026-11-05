@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { ArrowDownRight, ArrowUpRight, DollarSign, MousePointerClick, Percent, Repeat, ShoppingCart, Target, TrendingUp, Eye } from "lucide-react";
 import { Filters } from "@/components/filters";
-import { Bars, PerfTable } from "@/components/perf-table";
+import { PageHeader } from "@/components/page-header";
+import { DailyChart, Empty, PerfTable, PlatformBadge } from "@/components/perf-table";
 import { money, num, pct, when } from "@/lib/format";
 import { filtersFrom, type SP } from "@/lib/params";
 import { compare, lastRuns, listAccounts, performance } from "@/lib/report";
@@ -12,52 +14,66 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
   const t = cmp.current.totals;
   const ccy = cmp.current.currencies.length === 1 ? cmp.current.currencies[0] : "BRL";
   const kpis = [
-    { label: "Gasto", v: money(t.spend, ccy), c: cmp.change.spend, good: null },
-    { label: "Conversões", v: num(t.conversions, 1), c: cmp.change.conversions, good: true },
-    { label: "CPA", v: money(t.cpa, ccy), c: cmp.change.cpa, good: false },
-    { label: "Valor de conversão", v: money(t.conversionValue, ccy), c: cmp.change.conversionValue, good: true },
-    { label: "ROAS", v: t.roas == null ? "—" : `${num(t.roas, 2)}x`, c: cmp.change.roas, good: true },
-    { label: "Cliques", v: num(t.clicks), c: cmp.change.clicks, good: true },
-    { label: "CTR", v: t.ctr == null ? "—" : `${num(t.ctr, 2)}%`, c: cmp.change.ctr, good: true },
-    { label: "CPM", v: money(t.cpm, ccy), c: cmp.change.cpm, good: false },
+    { label: "Investimento", v: money(t.spend, ccy), c: cmp.change.spend, good: null, icon: DollarSign },
+    { label: "Conversões", v: num(t.conversions, 1), c: cmp.change.conversions, good: true, icon: ShoppingCart },
+    { label: "Custo por conversão", v: money(t.cpa, ccy), c: cmp.change.cpa, good: false, icon: Target },
+    { label: "ROAS", v: t.roas == null ? "—" : `${num(t.roas, 2)}x`, c: cmp.change.roas, good: true, icon: TrendingUp },
+    { label: "Valor de conversão", v: money(t.conversionValue, ccy), c: cmp.change.conversionValue, good: true, icon: Repeat },
+    { label: "Cliques", v: num(t.clicks), c: cmp.change.clicks, good: true, icon: MousePointerClick },
+    { label: "CTR", v: t.ctr == null ? "—" : `${num(t.ctr, 2)}%`, c: cmp.change.ctr, good: true, icon: Percent },
+    { label: "CPM", v: money(t.cpm, ccy), c: cmp.change.cpm, good: false, icon: Eye },
   ];
   const last = runs[0];
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Visão geral</h1>
-        <span className="text-xs text-muted">{f.since} → {f.until} · último sync: {last ? `${when(last.finished_at ?? last.started_at)} (${last.status})` : "nunca"}</span>
-      </div>
+      <PageHeader title="Visão geral" subtitle={<>{f.since.split("-").reverse().join("/")} — {f.until.split("-").reverse().join("/")} · comparado ao período anterior</>}
+        right={<span className="badge border border-line bg-white/[0.03] px-3 py-1.5 font-medium text-muted"><span className={`size-2 rounded-full ${last?.status === "success" ? "bg-good" : last ? "bg-bad" : "bg-muted"}`} />Sincronizado {last ? when(last.finished_at ?? last.started_at) : "nunca"}</span>} />
       <Filters sp={sp} />
       {!accounts.length && (
-        <div className="card mb-4 border-brand/40">Nenhuma conta conectada ainda. <Link href="/contas" className="text-brand underline">Conectar Meta e Google →</Link></div>
+        <div className="card mb-6 flex flex-wrap items-center justify-between gap-3 border-brand/30 bg-gradient-to-r from-brand/15 to-transparent">
+          <div><div className="font-semibold">Conecte suas contas de anúncio</div><div className="text-sm text-muted">Ligue o Business Manager da Meta e o Google Ads para os dados aparecerem aqui.</div></div>
+          <Link href="/contas" className="btn">Conectar contas</Link>
+        </div>
       )}
-      {cmp.current.currencies.length > 1 && <p className="mb-2 text-xs text-amber-600">Atenção: contas com moedas diferentes ({cmp.current.currencies.join(", ")}) — totais somados sem conversão.</p>}
-      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+      {cmp.current.currencies.length > 1 && <p className="mb-3 text-xs text-google">Atenção: contas em moedas diferentes ({cmp.current.currencies.join(", ")}) — totais somados sem conversão.</p>}
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {kpis.map((k) => {
           const up = (k.c ?? 0) > 0;
-          const color = k.c == null || k.good == null ? "text-muted" : up === k.good ? "text-emerald-500" : "text-red-500";
+          const tone = k.c == null || k.good == null || k.c === 0 ? "bg-white/5 text-muted" : up === k.good ? "bg-good/15 text-good" : "bg-bad/15 text-bad";
+          const Icon = k.icon;
           return (
-            <div key={k.label} className="card">
-              <div className="text-xs text-muted">{k.label}</div>
-              <div className="mt-1 text-xl font-semibold tabular-nums">{k.v}</div>
-              <div className={`text-xs ${color}`}>{pct(k.c)} vs período anterior</div>
+            <div key={k.label} className="card group relative overflow-hidden">
+              <div className="pointer-events-none absolute -top-10 -right-10 size-28 rounded-full bg-brand/10 blur-2xl transition group-hover:bg-brand/20" />
+              <div className="flex items-center justify-between"><span className="text-xs font-medium text-muted">{k.label}</span><Icon size={16} className="text-muted" /></div>
+              <div className="mt-2 text-2xl font-bold tracking-tight tabular-nums">{k.v}</div>
+              <span className={`badge mt-2 ${tone}`}>{k.c != null && (up ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />)}{pct(k.c)}</span>
             </div>
           );
         })}
       </div>
-      <div className="mb-4 grid gap-3 lg:grid-cols-3">
-        <div className="card lg:col-span-2"><div className="mb-2 text-sm font-medium">Gasto por dia</div><Bars rows={daily.rows} ccy={ccy} /></div>
-        <div className="card"><div className="mb-2 text-sm font-medium">Por plataforma</div>
-          {cmp.current.rows.map((r) => (
-            <div key={r.key} className="flex justify-between border-b border-line py-2 text-sm last:border-0"><span>{r.label}</span><span className="tabular-nums">{money(r.spend, ccy)} · {num(r.conversions, 1)} conv.</span></div>
-          ))}
-          {!cmp.current.rows.length && <p className="text-sm text-muted">Sem dados.</p>}
+      <div className="mb-6 grid gap-4 lg:grid-cols-3">
+        <div className="card lg:col-span-2"><div className="card-title">Investimento × conversões por dia</div><DailyChart rows={daily.rows} ccy={ccy} /></div>
+        <div className="card">
+          <div className="card-title">Por plataforma</div>
+          {cmp.current.rows.length ? cmp.current.rows.map((r) => {
+            const share = t.spend ? (r.spend / t.spend) * 100 : 0;
+            return (
+              <div key={r.key} className="mb-5 last:mb-0">
+                <div className="mb-2 flex items-center justify-between"><PlatformBadge p={r.key} /><span className="text-sm font-semibold tabular-nums">{money(r.spend, ccy)}</span></div>
+                <div className="h-2 overflow-hidden rounded-full bg-white/5"><div className={`h-full rounded-full ${r.key === "meta" ? "bg-meta" : "bg-google"}`} style={{ width: `${share}%` }} /></div>
+                <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-muted">
+                  <div><div className="text-ink tabular-nums">{num(r.conversions, 1)}</div>conversões</div>
+                  <div><div className="text-ink tabular-nums">{money(r.cpa, ccy)}</div>CPA</div>
+                  <div><div className="text-ink tabular-nums">{r.roas == null ? "—" : `${num(r.roas, 2)}x`}</div>ROAS</div>
+                </div>
+              </div>
+            );
+          }) : <Empty text="Sem dados." />}
         </div>
       </div>
       <div className="card">
-        <div className="mb-2 flex items-center justify-between text-sm font-medium">Top campanhas <Link href={`/campanhas?${new URLSearchParams(sp as Record<string, string>)}`} className="text-xs text-brand">ver todas →</Link></div>
-        <PerfTable rows={campaigns.rows.slice(0, 15)} totals={campaigns.totals} ccy={ccy} />
+        <div className="mb-3 flex items-center justify-between"><div className="card-title mb-0">Principais campanhas</div><Link href={`/campanhas?${new URLSearchParams(Object.entries(sp).filter(([, v]) => v) as [string, string][])}`} className="text-sm text-brand hover:underline">Ver todas →</Link></div>
+        <PerfTable rows={campaigns.rows.slice(0, 12)} totals={campaigns.totals} ccy={ccy} />
       </div>
     </>
   );

@@ -25,7 +25,7 @@ export function Chat() {
       <div className="mb-3 max-h-[480px] space-y-3 overflow-y-auto">
         {!msgs.length && <p className="text-sm text-muted">Ex.: “Quais campanhas tiveram CPA acima de R$ 50 nos últimos 7 dias?” · “Compare Meta x Google este mês” · “Crie uma tarefa no ClickUp para revisar os criativos do cliente X”.</p>}
         {msgs.map((m, i) => (
-          <div key={i} className={`rounded-lg p-3 text-sm whitespace-pre-wrap ${m.role === "user" ? "ml-8 bg-brand/10" : "mr-8 border border-line"}`}>
+          <div key={i} className={`rounded-lg p-3 text-sm whitespace-pre-wrap ${m.role === "user" ? "ml-8 bg-brand/15 border border-brand/20" : "mr-8 border border-line bg-white/[0.02]"}`}>
             {m.content}
             {m.tools?.length ? <div className="mt-2 text-[10px] text-muted">ferramentas: {m.tools.join(", ")}</div> : null}
           </div>
