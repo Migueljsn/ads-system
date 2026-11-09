@@ -181,3 +181,42 @@ export async function askAi(history: { role: "user" | "assistant"; content: stri
     return { text: `Erro: ${msg(e)}`, toolCalls: [] };
   }
 }
+
+/* ---------- sugestões e tarefas da equipe ---------- */
+export async function dismissSuggestion(form: FormData) {
+  const user = await requireUser();
+  await db().from("suggestion_actions").upsert({ key: String(form.get("key")), action: "dismissed", created_by: user.email, created_at: new Date().toISOString() });
+  revalidatePath("/", "layout");
+}
+
+export async function suggestionToTask(form: FormData) {
+  const user = await requireUser();
+  const { suggestions, SUGGESTION_LABEL } = await import("@/lib/suggestions");
+  const { createTask } = await import("@/lib/clickup");
+  const key = String(form.get("key"));
+  const s = (await suggestions({ includeHandled: true })).find((x) => x.key === key);
+  if (!s) return;
+  const { data: c } = await db().from("clients").select("clickup_list_id").eq("id", s.clientId).maybeSingle();
+  const listId = c?.clickup_list_id ?? (await db().from("settings").select("value").eq("key", "clickup_default_list").maybeSingle()).data?.value;
+  if (!listId) return;
+  const t = await createTask({
+    listId: String(listId), name: `${s.area} | ${SUGGESTION_LABEL[s.tipo]}: ${s.campanha ?? s.cliente}`,
+    description: `Sugestão do Fonil Ads (${dayBR()}).\n\n**${s.titulo}**\n\n${s.detalhe}\n\nEntrega: decidir e registrar aqui o que foi feito.`,
+    dueDate: daysAgo(-1), priority: s.severidade === "alta" ? 2 : 3, clientId: s.clientId, source: "alert", by: user.email,
+  });
+  await db().from("suggestion_actions").upsert({ key, action: "task", task_id: t.id, created_by: user.email, created_at: new Date().toISOString() });
+  revalidatePath("/", "layout");
+}
+
+export async function syncTeamTasks(_: Result, form: FormData): Promise<Result> {
+  await requireUser();
+  void form;
+  const { syncClickUpTasks } = await import("@/lib/tasks");
+  try {
+    const r = await syncClickUpTasks(Number(process.env.CLICKUP_SYNC_DAYS) || 120);
+    revalidatePath("/ranking");
+    return { ok: true, message: `${r.tasks} tarefas sincronizadas.` };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
+  }
+}

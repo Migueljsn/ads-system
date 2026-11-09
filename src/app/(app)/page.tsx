@@ -6,11 +6,13 @@ import { DailyChart, Empty, PerfTable, PlatformBadge } from "@/components/perf-t
 import { money, num, pct, when } from "@/lib/format";
 import { filtersFrom, type SP } from "@/lib/params";
 import { compare, lastRuns, listAccounts, performance } from "@/lib/report";
+import { SuggestionList } from "@/components/suggestions";
+import { suggestions } from "@/lib/suggestions";
 
 export default async function Home({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
   const f = filtersFrom(sp);
-  const [cmp, daily, campaigns, accounts, runs] = await Promise.all([compare(f, "platform"), performance(f, "day"), performance(f, "campaign"), listAccounts(), lastRuns()]);
+  const [cmp, daily, campaigns, accounts, runs, sug] = await Promise.all([compare(f, "platform"), performance(f, "day"), performance(f, "campaign"), listAccounts(), lastRuns(), suggestions({ clientId: f.clientId }).catch(() => [])]);
   const t = cmp.current.totals;
   const ccy = cmp.current.currencies.length === 1 ? cmp.current.currencies[0] : "BRL";
   const kpis = [
@@ -36,6 +38,7 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
         </div>
       )}
       {cmp.current.currencies.length > 1 && <p className="mb-3 text-xs text-google">Atenção: contas em moedas diferentes ({cmp.current.currencies.join(", ")}) — totais somados sem conversão.</p>}
+      {sug.length > 0 && <SuggestionList items={sug} limit={5} title="Sugestões para hoje" />}
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {kpis.map((k) => {
           const up = (k.c ?? 0) > 0;

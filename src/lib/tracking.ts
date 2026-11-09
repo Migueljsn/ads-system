@@ -89,3 +89,16 @@ export async function crmPipeline(opts: { since: string; until: string; clientId
     motivosDePerda: losses.filter((l) => l.client_slug === c.tslug).map(({ reason, leads }) => ({ motivo: reason, leads })),
   }));
 }
+
+/** série diária do CRM por cliente (leads, vendas, faturamento) — base do impacto das tarefas */
+export async function crmDaily(trackingSlugs: string[], since: string, until: string) {
+  if (!trackingEnabled() || !trackingSlugs.length) return [];
+  return query<{ client_slug: string; day: string; leads: number; sales: number; revenue: number }>(
+    `select coalesce(l.client_slug, s.client_slug) client_slug, to_char(coalesce(l.day, s.day), 'YYYY-MM-DD') as day,
+            coalesce(l.leads, 0)::int leads, coalesce(s.sales, 0)::int sales, coalesce(s.revenue, 0)::float8 revenue
+       from (select client_slug, day, sum(leads) leads from fads.lead_daily where client_slug = any($1) and day between $2 and $3 group by 1, 2) l
+       full join (select client_slug, day, sum(sales) sales, sum(revenue) revenue from fads.sale_daily where client_slug = any($1) and day between $2 and $3 group by 1, 2) s
+         on s.client_slug = l.client_slug and s.day = l.day`,
+    [trackingSlugs, since, until],
+  );
+}

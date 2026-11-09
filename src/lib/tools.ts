@@ -7,6 +7,8 @@ import * as meta from "./meta";
 import { compare, lastRuns, listAccounts, performance } from "./report";
 import { db } from "./supabase/server";
 import { syncAll } from "./sync";
+import { suggestions } from "./suggestions";
+import { ranking, syncClickUpTasks, taskImpact } from "./tasks";
 import { crmPipeline, crmResults } from "./tracking";
 
 /*
@@ -85,6 +87,18 @@ export const tools = [
   def({ name: "crm_pipeline", title: "Funil do CRM", scope: "read", description: "Leads abertos por etapa do funil (agora) e motivos de perda no período, por cliente.",
     input: z.object({ since: day.optional(), until: day.optional(), days: z.number().int().min(1).max(365).optional(), clientId: z.string().uuid().optional() }),
     run: (i) => crmPipeline({ ...range(i.since, i.until, i.days ?? 30), clientId: i.clientId }) }),
+  def({ name: "suggestions", title: "Sugestões de ação", scope: "read",
+    description: "Sugestões acionáveis cruzando gasto e CRM: campanhas para avaliar pausar (gasto sem lead no CRM), escalar (ROAS real alto), CPL alto, leads que não chegam no CRM, UTMs faltando e contas não vinculadas. Padrão: últimos 30 dias, sem as já dispensadas/viradas tarefa.",
+    input: z.object({ since: day.optional(), until: day.optional(), clientId: z.string().uuid().optional() }),
+    run: (i) => suggestions(i) }),
+  def({ name: "team_ranking", title: "Ranking da equipe", scope: "read", description: "Pontos, entregas, % no prazo, atrasadas abertas, áreas e clientes por pessoa no período (tarefas do ClickUp espelhadas). Padrão: mês atual.",
+    input: z.object({ since: day.optional(), until: day.optional() }),
+    run: (i) => ranking(i.since ?? `${new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 7)}-01`, i.until ?? range(null, null, 1).until) }),
+  def({ name: "task_impact", title: "Impacto das entregas", scope: "read", description: "Para cada tarefa concluída ligada a um cliente: gasto, leads, CPL, vendas e faturamento do cliente N dias antes × depois (relação provável, não causa).",
+    input: z.object({ since: day.optional(), until: day.optional(), clientId: z.string().uuid().optional(), window: z.number().int().min(3).max(30).default(7) }),
+    run: (i) => taskImpact(i) }),
+  def({ name: "clickup_sync", title: "Sincronizar tarefas do ClickUp", scope: "write", description: "Atualiza o espelho das tarefas do ClickUp (ranking e impacto). Padrão: alteradas nos últimos 30 dias.",
+    input: z.object({ days: z.number().int().min(1).max(365).default(30) }), run: (i) => syncClickUpTasks(i.days) }),
   def({ name: "clickup_lists", title: "Listas do ClickUp", scope: "read", description: "Todas as listas do workspace do ClickUp (id e caminho espaço/pasta/lista).", input: z.object({}),
     run: () => clickup.allLists() }),
   def({ name: "clickup_tasks", title: "Tarefas do ClickUp", scope: "read", description: "Tarefas abertas de uma lista do ClickUp (ou da lista do cliente).",

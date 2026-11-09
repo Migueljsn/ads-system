@@ -4,6 +4,7 @@ import { generateText, isStepCount, tool } from "ai";
 import { commentTask, createTask, taskUrl } from "./clickup";
 import { compare, performance } from "./report";
 import { db } from "./supabase/server";
+import { suggestions } from "./suggestions";
 import { crmResults, trackingEnabled } from "./tracking";
 
 export const AI_MODEL = process.env.AI_MODEL || "claude-sonnet-5-5";
@@ -26,12 +27,14 @@ export async function analyze(opts: { since: string; until: string; clientId?: s
     opts.clientId ? db().from("clients").select("name, clickup_list_id, clickup_report_task_id, monthly_budget, notes").eq("id", opts.clientId).maybeSingle().then((r) => r.data) : null,
     trackingEnabled() ? crmResults(f).catch((e) => ({ erro: String(e) })) : null,
   ]);
+  const sugestoes = trackingEnabled() ? await suggestions({ clientId: opts.clientId }).catch(() => []) : [];
   if (!campaigns.rows.length) return { content: "Sem dados no período. Conecte contas e rode a sincronização.", task: null };
   const data = {
     cliente: client?.name ?? "Todas as contas", periodo: f, orcamentoMensal: client?.monthly_budget ?? null, notas: client?.notes ?? null,
     totais: cmp.current.totals, porPlataforma: cmp.current.rows, periodoAnterior: cmp.previous, variacaoPct: cmp.change,
     campanhas: campaigns.rows.slice(0, 60), diario: daily.rows.map(({ key, spend, conversions, clicks, conversionValue }) => ({ dia: key, spend, conversions, clicks, conversionValue })),
     crm,
+    sugestoesDoSistema: sugestoes.map(({ tipo, severidade, titulo, detalhe }) => ({ tipo, severidade, titulo, detalhe })),
   };
   const { text } = await generateText({ model: anthropic(AI_MODEL), system: SYSTEM, prompt: `Dados (JSON):\n${JSON.stringify(data)}` });
   let task: { id: string; url: string } | null = null;
