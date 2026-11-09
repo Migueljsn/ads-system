@@ -7,6 +7,7 @@ import { compare, performance } from "./report";
 import { db } from "./supabase/server";
 import { suggestions } from "./suggestions";
 import { crmResults, trackingEnabled } from "./tracking";
+import { quizEnabled, quizResults } from "./quiz";
 
 /** provedor: Anthropic se houver ANTHROPIC_API_KEY; senão OpenAI (OPENAI_API_KEY). AI_PROVIDER força um deles. */
 const PROVIDER = (process.env.AI_PROVIDER || (process.env.ANTHROPIC_API_KEY ? "anthropic" : process.env.OPENAI_API_KEY ? "openai" : "anthropic")) as "anthropic" | "openai";
@@ -20,26 +21,29 @@ Responda em português do Brasil, direto e acionável. Use números do dado forn
 Estruture: 1) Resumo executivo (3 linhas), 2) O que melhorou/piorou vs período anterior, 3) Alertas (gasto sem conversão, CPA subindo, CTR baixo, campanhas com gasto alto e ROAS < 1), 4) Recomendações priorizadas (pausar, escalar, testar criativo, ajustar orçamento), com o nome exato da campanha.
 Valores monetários estão na moeda da conta (normalmente BRL).
 Quando houver "crm" nos dados, use-o como verdade de negócio: leads e vendas reais do CRM, CPL real, custo por venda e ROAS real (faturamento/gasto). Aponte divergências entre conversões da plataforma e leads do CRM e baixo % de leads com campanha identificada (problema de tracking/UTM).
+Quando houver "quiz" nos dados (QuizzBuilder): analise visitantes → leads (conversão), CPL do quiz por campanha, a etapa do funil com maior abandono (sugira o que testar nela) e o perfil dos leads pelas respostas mais comuns. Compare leads do quiz com leads do CRM: se o CRM tiver bem menos, aponte falha na integração quiz → CRM.
 Se "vendasPossivelmenteNaoLancadas" for true (última venda registrada antes do período), NÃO conclua que as vendas/faturamento caíram a zero: diga que as vendas do período ainda não foram lançadas no CRM (informe a data da última venda) e recomende lançá-las; avalie o período só por leads e CPL.`;
 
 /** relatório de IA do período (todas as contas ou de um cliente); opcionalmente vira tarefa no ClickUp */
 export async function analyze(opts: { since: string; until: string; clientId?: string; sendToClickUp?: boolean; by: string }) {
   if (!aiEnabled()) throw new Error("IA desativada: defina OPENAI_API_KEY ou ANTHROPIC_API_KEY");
   const f = { since: opts.since, until: opts.until, clientId: opts.clientId };
-  const [cmp, campaigns, daily, client, crm] = await Promise.all([
+  const [cmp, campaigns, daily, client, crm, quiz] = await Promise.all([
     compare(f, "platform"),
     performance(f, "campaign"),
     performance(f, "day"),
     opts.clientId ? db().from("clients").select("name, clickup_list_id, clickup_report_task_id, monthly_budget, notes").eq("id", opts.clientId).maybeSingle().then((r) => r.data) : null,
     trackingEnabled() ? crmResults(f).catch((e) => ({ erro: String(e) })) : null,
+    quizEnabled() ? quizResults(f).catch((e) => ({ erro: String(e) })) : null,
   ]);
-  const sugestoes = trackingEnabled() ? await suggestions({ clientId: opts.clientId }).catch(() => []) : [];
+  const sugestoes = trackingEnabled() || quizEnabled() ? await suggestions({ clientId: opts.clientId }).catch(() => []) : [];
   if (!campaigns.rows.length) return { content: "Sem dados no período. Conecte contas e rode a sincronização.", task: null };
   const data = {
     cliente: client?.name ?? "Todas as contas", periodo: f, orcamentoMensal: client?.monthly_budget ?? null, notas: client?.notes ?? null,
     totais: cmp.current.totals, porPlataforma: cmp.current.rows, periodoAnterior: cmp.previous, variacaoPct: cmp.change,
     campanhas: campaigns.rows.slice(0, 60), diario: daily.rows.map(({ key, spend, conversions, clicks, conversionValue }) => ({ dia: key, spend, conversions, clicks, conversionValue })),
     crm,
+    quiz,
     sugestoesDoSistema: sugestoes.map(({ tipo, severidade, titulo, detalhe }) => ({ tipo, severidade, titulo, detalhe })),
   };
   const { text } = await generateText({ model: model(), system: SYSTEM, prompt: `Dados (JSON):\n${JSON.stringify(data)}` });

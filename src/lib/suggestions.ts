@@ -1,6 +1,7 @@
 import "server-only";
 import { daysAgo, dayBR } from "./dates";
 import { db } from "./supabase/server";
+import { quizEnabled, quizResults } from "./quiz";
 import { crmResults, trackingEnabled } from "./tracking";
 
 /*
@@ -8,20 +9,24 @@ import { crmResults, trackingEnabled } from "./tracking";
  * dispensar ou transformar em tarefa grava em suggestion_actions e ela some por 14 dias.
  */
 export type Suggestion = {
-  key: string; tipo: "pausar" | "escalar" | "cpl" | "crm" | "tracking" | "vincular" | "vendas";
+  key: string; tipo: "pausar" | "escalar" | "cpl" | "crm" | "tracking" | "vincular" | "vendas" | "abandono" | "quizcrm" | "quizparado";
   severidade: "alta" | "media" | "baixa"; titulo: string; detalhe: string;
   cliente: string; clientId: string; campanha?: string; area: string;
 };
 export const SUGGESTION_LABEL: Record<Suggestion["tipo"], string> = {
   pausar: "Avaliar pausar", escalar: "Escalar", cpl: "CPL alto", crm: "Leads não chegam no CRM", tracking: "Corrigir UTMs", vincular: "Vincular conta", vendas: "Lançar vendas",
+  abandono: "Abandono no quiz", quizcrm: "Quiz → CRM", quizparado: "Quiz sem leads",
 };
 const brl = (n: number | null) => (n == null ? "—" : n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
 const order = { alta: 0, media: 1, baixa: 2 };
 
 export async function suggestions(opts: { since?: string; until?: string; clientId?: string; includeHandled?: boolean } = {}) {
-  if (!trackingEnabled()) return [];
+  if (!trackingEnabled() && !quizEnabled()) return [];
   const since = opts.since ?? daysAgo(29), until = opts.until ?? dayBR();
-  const res = await crmResults({ since, until, clientId: opts.clientId });
+  const [res, quiz] = await Promise.all([
+    trackingEnabled() ? crmResults({ since, until, clientId: opts.clientId }) : { clientes: [] },
+    quizEnabled() ? quizResults({ since, until, clientId: opts.clientId }).catch(() => ({ clientes: [] })) : { clientes: [] },
+  ]);
   const out: Suggestion[] = [];
   const periodo = `${since.split("-").reverse().join("/")} a ${until.split("-").reverse().join("/")}`;
   for (const c of res.clientes) {
@@ -47,6 +52,22 @@ export async function suggestions(opts: { since?: string; until?: string; client
         out.push({ ...camp, key: k("escalar"), tipo: "escalar", severidade: "media", titulo: `${r.campanha}: ROAS real ${r.roasReal}x com ${r.vendas} vendas`, detalhe: `${c.cliente} · ${periodo}. Acima da média do cliente (${Math.round(avgRoas * 10) / 10}x). Avaliar aumentar o orçamento aos poucos (20–30%).` });
       if (r.leadsAnuncio >= 20 && r.leadsCRM / r.leadsAnuncio < 0.6)
         out.push({ ...camp, key: k("crm"), tipo: "crm", severidade: "media", area: "Páginas e CRM", titulo: `${r.campanha}: ${r.leadsAnuncio} leads na plataforma, ${r.leadsCRM} no CRM`, detalhe: `${c.cliente} · ${periodo}. ${Math.round((1 - r.leadsCRM / r.leadsAnuncio) * 100)}% não chegam (ou chegam sem a campanha). Conferir formulário/quiz → CRM e parâmetros de URL.` });
+    }
+  }
+  const fmt = (d: string) => d.split("-").reverse().join("/");
+  for (const q of quiz.clientes) {
+    const base = { cliente: q.cliente, clientId: q.clientId, area: "Páginas e CRM" };
+    const quizLeads = q.quizzes.reduce((t, z) => t + z.leads, 0);
+    const crm = res.clientes.find((c) => c.clientId === q.clientId);
+    if (crm && quizLeads >= 20 && crm.leads < 0.6 * quizLeads)
+      out.push({ ...base, key: `quizcrm:${q.clientId}`, tipo: "quizcrm", severidade: "alta", titulo: `${q.cliente}: ${quizLeads} leads no quiz, ${crm.leads} no CRM`, detalhe: `${Math.round((1 - crm.leads / quizLeads) * 100)}% dos leads do quiz não chegam no Fonil CRM (${periodo}). Conferir a integração/webhook do quiz com o CRM.` });
+    const stale = new Date(new Date(`${until}T12:00:00Z`).getTime() - 3 * 86400_000).toISOString().slice(0, 10);
+    if (q.gastoCliente >= 100 && q.ultimoLeadQuiz && q.ultimoLeadQuiz < stale)
+      out.push({ ...base, key: `quizparado:${q.clientId}:${q.ultimoLeadQuiz}`, tipo: "quizparado", severidade: "media", titulo: `${q.cliente}: quiz sem leads desde ${fmt(q.ultimoLeadQuiz)}`, detalhe: `${brl(q.gastoCliente)} em anúncios no período e nenhum lead nos quizzes. Se o quiz ainda é o destino dos anúncios, conferir se a página está no ar e o formulário funcionando.` });
+    for (const z of q.quizzes) {
+      const worst = z.funil.map((f, i) => ({ ...f, antes: i ? z.funil[i - 1].sessoes : 0 })).filter((f) => f.antes >= 100 && (f.queda ?? 0) >= 40).sort((a, b) => (b.queda ?? 0) - (a.queda ?? 0))[0];
+      if (worst)
+        out.push({ ...base, key: `abandono:${q.clientId}:${z.slug}:${worst.etapa}`, tipo: "abandono", severidade: "media", titulo: `${z.quiz}: ${Math.round(worst.queda ?? 0)}% abandonam na etapa ${worst.etapa}`, detalhe: `"${worst.nome}" (${worst.antes} → ${worst.sessoes} sessões, ${periodo}). Testar simplificar essa etapa, mudar a ordem das perguntas ou o criativo que leva ao quiz. Conversão total do quiz: ${z.conversao == null ? "—" : z.conversao.toLocaleString("pt-BR")}%.` });
     }
   }
   if (opts.includeHandled) return out.sort((a, b) => order[a.severidade] - order[b.severidade]);

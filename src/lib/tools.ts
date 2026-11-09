@@ -10,6 +10,7 @@ import { syncAll } from "./sync";
 import { suggestions } from "./suggestions";
 import { ranking, syncClickUpTasks, taskImpact } from "./tasks";
 import { crmPipeline, crmResults } from "./tracking";
+import { quizResults } from "./quiz";
 
 /*
  * Registro único das ferramentas do sistema. O mesmo conjunto é exposto:
@@ -87,8 +88,12 @@ export const tools = [
   def({ name: "crm_pipeline", title: "Funil do CRM", scope: "read", description: "Leads abertos por etapa do funil (agora) e motivos de perda no período, por cliente.",
     input: z.object({ since: day.optional(), until: day.optional(), days: z.number().int().min(1).max(365).optional(), clientId: z.string().uuid().optional() }),
     run: (i) => crmPipeline({ ...range(i.since, i.until, i.days ?? 30), clientId: i.clientId }) }),
+  def({ name: "quiz_results", title: "Resultados dos quizzes (QuizzBuilder)", scope: "read",
+    description: "Quizzes da Fonil por cliente: visitantes, leads (formulário preenchido), conversão, gasto e CPL do quiz por campanha, funil por etapa com % de abandono, respostas mais comuns (perfil dos leads) e quizzes publicados sem atividade. Sem dados pessoais.",
+    input: z.object({ since: day.optional(), until: day.optional(), days: z.number().int().min(1).max(365).optional(), clientId: z.string().uuid().optional() }),
+    run: (i) => quizResults({ ...range(i.since, i.until, i.days ?? 30), clientId: i.clientId }) }),
   def({ name: "suggestions", title: "Sugestões de ação", scope: "read",
-    description: "Sugestões acionáveis cruzando gasto e CRM: campanhas para avaliar pausar (gasto sem lead no CRM), escalar (ROAS real alto), CPL alto, leads que não chegam no CRM, UTMs faltando e contas não vinculadas. Padrão: últimos 30 dias, sem as já dispensadas/viradas tarefa.",
+    description: "Sugestões acionáveis cruzando gasto e CRM: campanhas para avaliar pausar (gasto sem lead no CRM), escalar (ROAS real alto), CPL alto, leads que não chegam no CRM, UTMs faltando, contas não vinculadas, vendas não lançadas, abandono alto em etapa do quiz, leads do quiz que não chegam no CRM e quiz sem leads. Padrão: últimos 30 dias, sem as já dispensadas/viradas tarefa.",
     input: z.object({ since: day.optional(), until: day.optional(), clientId: z.string().uuid().optional() }),
     run: (i) => suggestions(i) }),
   def({ name: "team_ranking", title: "Ranking da equipe", scope: "read", description: "Pontos, entregas, % no prazo, atrasadas abertas, áreas e clientes por pessoa no período (tarefas do ClickUp espelhadas). Padrão: mês atual.",
