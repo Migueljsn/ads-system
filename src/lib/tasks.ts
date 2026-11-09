@@ -157,18 +157,20 @@ export async function taskImpact(opts: { since?: string; until?: string; clientI
   const delta = (a: number | null, b: number | null) => (a == null || b == null || a === 0 ? null : Math.round(((b - a) / a) * 1000) / 10);
   return {
     periodo: { since, until }, janelaDias: w,
-    observacao: "Compara o cliente inteiro antes × depois da entrega. Mostra relação provável, não prova de causa (outras ações e sazonalidade também influenciam).",
+    observacao: "Compara o cliente inteiro antes × depois da entrega, sempre com janelas do mesmo tamanho (enquanto não completa os dias, usa os mesmos N dias antes). Mostra relação provável, não prova de causa (outras ações e sazonalidade também influenciam).",
     tarefas: relevant.map((t) => {
       const c = (clients ?? []).find((x) => x.id === t.client_id);
       const d = dayBR(new Date(t.date_done!));
-      const before = sumWin(t.client_id!, c?.tracking_slug ?? null, addDays(d, -w), addDays(d, -1));
       const afterEnd = addDays(d, w) < today ? addDays(d, w) : today;
-      const after = sumWin(t.client_id!, c?.tracking_slug ?? null, addDays(d, 1), afterEnd);
       const elapsed = Math.max(0, Math.round((Date.parse(afterEnd) - Date.parse(d)) / 86400_000));
+      // janelas do mesmo tamanho: enquanto não completa N dias depois, compara com os mesmos N dias antes
+      const n = Math.max(1, Math.min(w, elapsed));
+      const before = sumWin(t.client_id!, c?.tracking_slug ?? null, addDays(d, -n), addDays(d, -1));
+      const after = elapsed ? sumWin(t.client_id!, c?.tracking_slug ?? null, addDays(d, 1), afterEnd) : { gasto: 0, leads: 0, cpl: null, vendas: 0, faturamento: 0 };
       return {
         tarefa: t.name, url: t.url, cliente: c?.name ?? null, area: t.area, responsaveis: t.assignees.map((a) => a.name), concluidaEm: d,
         diasDepois: elapsed, completo: elapsed >= w, antes: before, depois: after,
-        variacao: { leads: delta(before.leads, after.leads), cpl: delta(before.cpl, after.cpl), vendas: delta(before.vendas, after.vendas), faturamento: delta(before.faturamento, after.faturamento) },
+        variacao: !elapsed ? { leads: null, cpl: null, vendas: null, faturamento: null } : { leads: delta(before.leads, after.leads), cpl: delta(before.cpl, after.cpl), vendas: delta(before.vendas, after.vendas), faturamento: delta(before.faturamento, after.faturamento) },
       };
     }),
   };

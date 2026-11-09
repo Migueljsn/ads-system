@@ -68,7 +68,7 @@ export default async function Ranking({ searchParams }: { searchParams: SP }) {
             <thead className="text-left text-xs text-muted"><tr><th className="py-2 pr-3">Entrega</th><th className="pr-3">Cliente</th><th className="pr-3">Quem</th><th className="pr-3 text-right">Leads antes → depois</th><th className="pr-3 text-right">CPL antes → depois</th><th className="pr-3 text-right">Vendas</th><th className="text-right">Faturamento</th></tr></thead>
             <tbody>{impact.tarefas.map((t) => (
               <tr key={t.url} className="border-t border-line">
-                <td className="py-2 pr-3"><a href={t.url} target="_blank" rel="noreferrer" className="hover:text-brand">{t.tarefa}</a><div className="text-xs text-muted">{t.concluidaEm.split("-").reverse().join("/")}{!t.completo && ` · aguardando (${t.diasDepois}/${impact.janelaDias} dias)`}</div></td>
+                <td className="py-2 pr-3"><a href={t.url} target="_blank" rel="noreferrer" className="hover:text-brand">{t.tarefa}</a><div className="text-xs text-muted">{t.concluidaEm.split("-").reverse().join("/")}{!t.completo && ` · parcial: ${t.diasDepois}×${t.diasDepois} dias (completa em ${impact.janelaDias})`}</div></td>
                 <td className="pr-3">{t.cliente}</td><td className="pr-3 text-xs">{t.responsaveis.join(", ")}</td>
                 <td className="pr-3 text-right">{t.antes.leads} → {t.depois.leads} <Delta v={t.variacao.leads} good /></td>
                 <td className="pr-3 text-right">{money(t.antes.cpl)} → {money(t.depois.cpl)} <Delta v={t.variacao.cpl} good={false} /></td>
