@@ -7,6 +7,7 @@ import * as meta from "./meta";
 import { compare, lastRuns, listAccounts, performance } from "./report";
 import { db } from "./supabase/server";
 import { syncAll } from "./sync";
+import { crmPipeline, crmResults } from "./tracking";
 
 /*
  * Registro único das ferramentas do sistema. O mesmo conjunto é exposto:
@@ -48,7 +49,7 @@ async function listFor(input: { listId?: string; clientId?: string }) {
 
 export const tools = [
   def({ name: "list_clients", title: "Listar clientes", scope: "read", description: "Clientes da agência com id, lista do ClickUp e orçamento mensal.", input: z.object({}),
-    run: async () => (await db().from("clients").select("id, name, slug, clickup_list_id, monthly_budget, notes, active").order("name")).data }),
+    run: async () => (await db().from("clients").select("id, name, slug, tracking_slug, clickup_list_id, monthly_budget, notes, active").order("name")).data }),
   def({ name: "list_accounts", title: "Listar contas de anúncio", scope: "read", description: "Contas de anúncio conectadas (Meta e Google), cliente dono, moeda, status e último sync.", input: z.object({}),
     run: () => listAccounts() }),
   def({ name: "get_performance", title: "Desempenho agregado", scope: "read",
@@ -77,6 +78,13 @@ export const tools = [
   def({ name: "set_daily_budget", title: "Alterar orçamento diário", scope: "write", description: "Altera o orçamento diário (valor na moeda da conta, ex.: 150.5) de campanha/conjunto (Meta) ou campanha (Google). Ação real na plataforma.",
     input: z.object({ platform, accountId: z.string(), objectId: z.string(), amount: z.number().positive() }),
     run: (i) => i.platform === "meta" ? meta.setDailyBudget(i.accountId, i.objectId, i.amount) : google.setGoogleCampaignBudget(i.accountId, i.objectId, i.amount) }),
+  def({ name: "crm_results", title: "Resultado no CRM (leads, vendas, ROAS real)", scope: "read",
+    description: "Cruza o gasto em anúncios com o CRM/tracking da Fonil: leads, vendas, faturamento, recompras, CPL, custo por venda, ROAS real e taxa de conversão, por cliente e por campanha, além do % de leads com campanha identificada e leads por origem.",
+    input: z.object({ since: day.optional(), until: day.optional(), days: z.number().int().min(1).max(365).optional(), clientId: z.string().uuid().optional() }),
+    run: (i) => crmResults({ ...range(i.since, i.until, i.days ?? 30), clientId: i.clientId }) }),
+  def({ name: "crm_pipeline", title: "Funil do CRM", scope: "read", description: "Leads abertos por etapa do funil (agora) e motivos de perda no período, por cliente.",
+    input: z.object({ since: day.optional(), until: day.optional(), days: z.number().int().min(1).max(365).optional(), clientId: z.string().uuid().optional() }),
+    run: (i) => crmPipeline({ ...range(i.since, i.until, i.days ?? 30), clientId: i.clientId }) }),
   def({ name: "clickup_lists", title: "Listas do ClickUp", scope: "read", description: "Todas as listas do workspace do ClickUp (id e caminho espaço/pasta/lista).", input: z.object({}),
     run: () => clickup.allLists() }),
   def({ name: "clickup_tasks", title: "Tarefas do ClickUp", scope: "read", description: "Tarefas abertas de uma lista do ClickUp (ou da lista do cliente).",

@@ -4,6 +4,7 @@ import { generateText, isStepCount, tool } from "ai";
 import { commentTask, createTask, taskUrl } from "./clickup";
 import { compare, performance } from "./report";
 import { db } from "./supabase/server";
+import { crmResults, trackingEnabled } from "./tracking";
 
 export const AI_MODEL = process.env.AI_MODEL || "claude-sonnet-5-5";
 export const aiEnabled = () => Boolean(process.env.ANTHROPIC_API_KEY);
@@ -11,23 +12,26 @@ export const aiEnabled = () => Boolean(process.env.ANTHROPIC_API_KEY);
 const SYSTEM = `Você é um gestor de tráfego sênior da Fonil Group analisando Meta Ads e Google Ads.
 Responda em português do Brasil, direto e acionável. Use números do dado fornecido (nunca invente).
 Estruture: 1) Resumo executivo (3 linhas), 2) O que melhorou/piorou vs período anterior, 3) Alertas (gasto sem conversão, CPA subindo, CTR baixo, campanhas com gasto alto e ROAS < 1), 4) Recomendações priorizadas (pausar, escalar, testar criativo, ajustar orçamento), com o nome exato da campanha.
-Valores monetários estão na moeda da conta (normalmente BRL).`;
+Valores monetários estão na moeda da conta (normalmente BRL).
+Quando houver "crm" nos dados, use-o como verdade de negócio: leads e vendas reais do CRM, CPL real, custo por venda e ROAS real (faturamento/gasto). Aponte divergências entre conversões da plataforma e leads do CRM e baixo % de leads com campanha identificada (problema de tracking/UTM).`;
 
 /** relatório de IA do período (todas as contas ou de um cliente); opcionalmente vira tarefa no ClickUp */
 export async function analyze(opts: { since: string; until: string; clientId?: string; sendToClickUp?: boolean; by: string }) {
   if (!aiEnabled()) throw new Error("IA desativada: defina ANTHROPIC_API_KEY");
   const f = { since: opts.since, until: opts.until, clientId: opts.clientId };
-  const [cmp, campaigns, daily, client] = await Promise.all([
+  const [cmp, campaigns, daily, client, crm] = await Promise.all([
     compare(f, "platform"),
     performance(f, "campaign"),
     performance(f, "day"),
     opts.clientId ? db().from("clients").select("name, clickup_list_id, clickup_report_task_id, monthly_budget, notes").eq("id", opts.clientId).maybeSingle().then((r) => r.data) : null,
+    trackingEnabled() ? crmResults(f).catch((e) => ({ erro: String(e) })) : null,
   ]);
   if (!campaigns.rows.length) return { content: "Sem dados no período. Conecte contas e rode a sincronização.", task: null };
   const data = {
     cliente: client?.name ?? "Todas as contas", periodo: f, orcamentoMensal: client?.monthly_budget ?? null, notas: client?.notes ?? null,
     totais: cmp.current.totals, porPlataforma: cmp.current.rows, periodoAnterior: cmp.previous, variacaoPct: cmp.change,
     campanhas: campaigns.rows.slice(0, 60), diario: daily.rows.map(({ key, spend, conversions, clicks, conversionValue }) => ({ dia: key, spend, conversions, clicks, conversionValue })),
+    crm,
   };
   const { text } = await generateText({ model: anthropic(AI_MODEL), system: SYSTEM, prompt: `Dados (JSON):\n${JSON.stringify(data)}` });
   let task: { id: string; url: string } | null = null;

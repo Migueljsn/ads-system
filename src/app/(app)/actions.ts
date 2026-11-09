@@ -110,6 +110,7 @@ export async function saveClient(_: Result, form: FormData): Promise<Result> {
     name,
     clickup_list_id: String(form.get("clickup_list_id") ?? "") || null,
     clickup_report_task_id: parseTaskId(String(form.get("clickup_report_task") ?? "")),
+    tracking_slug: String(form.get("tracking_slug") ?? "").trim().toLowerCase() || null,
     monthly_budget: form.get("monthly_budget") ? Number(String(form.get("monthly_budget")).replace(",", ".")) : null,
     notes: String(form.get("notes") ?? "") || null,
   };

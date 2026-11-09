@@ -41,6 +41,8 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
             <select name="clickup_list_id" defaultValue={editing?.clickup_list_id ?? ""} className="input mb-2"><option value="">—</option>{lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>
             <label className="label">Tarefa de relatórios do ClickUp (link ou id; o relatório de IA vira comentário nela)</label>
             <input name="clickup_report_task" defaultValue={editing?.clickup_report_task_id ? taskUrl(editing.clickup_report_task_id) : ""} className="input mb-2" placeholder="https://app.clickup.com/t/…" />
+            <label className="label">Cliente no Fonil CRM (slug do tracking, ex.: rio-piranhas)</label>
+            <input name="tracking_slug" defaultValue={editing?.tracking_slug ?? ""} className="input mb-2" placeholder="rio-piranhas" />
             <label className="label">Orçamento mensal</label><input name="monthly_budget" defaultValue={editing?.monthly_budget ?? ""} className="input mb-2" inputMode="decimal" />
             <label className="label">Notas para a IA (meta de CPA, oferta, público…)</label><textarea name="notes" defaultValue={editing?.notes ?? ""} className="input h-20" />
           </ActionForm>
