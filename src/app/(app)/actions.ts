@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireUser, createApiKey } from "@/lib/auth";
 import { checkGoogleAccount, credFromInput, listClientAccounts, saveGoogleAccount, syncGoogle } from "@/lib/google";
 import { checkBm, importAccounts, saveBm, syncMeta } from "@/lib/meta";
+import { parseTaskId } from "@/lib/clickup";
 import { daysAgo, dayBR } from "@/lib/dates";
 import { db } from "@/lib/supabase/server";
 import { syncAll } from "@/lib/sync";
@@ -108,6 +109,7 @@ export async function saveClient(_: Result, form: FormData): Promise<Result> {
   const row = {
     name,
     clickup_list_id: String(form.get("clickup_list_id") ?? "") || null,
+    clickup_report_task_id: parseTaskId(String(form.get("clickup_report_task") ?? "")),
     monthly_budget: form.get("monthly_budget") ? Number(String(form.get("monthly_budget")).replace(",", ".")) : null,
     notes: String(form.get("notes") ?? "") || null,
   };
@@ -149,6 +151,7 @@ export async function saveSettings(_: Result, form: FormData): Promise<Result> {
     { key: "team_emails", value: team, updated_at: now },
     { key: "clickup_default_list", value: String(form.get("clickup_default_list") ?? "") || null, updated_at: now },
     { key: "daily_report_enabled", value: form.get("daily_report") === "on", updated_at: now },
+    { key: "clickup_default_assignee", value: Number(form.get("clickup_default_assignee")) || null, updated_at: now },
   ]);
   revalidatePath("/config");
   return { ok: true, message: "Configurações salvas." };

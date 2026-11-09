@@ -16,7 +16,33 @@ async function cu<T>(path: string, init?: { method?: string; body?: unknown }): 
   return json;
 }
 
-export const teams = () => cu<{ teams: { id: string; name: string }[] }>("/team").then((r) => r.teams);
+type Team = { id: string; name: string; members: { user: { id: number; username: string | null; email: string } }[] };
+export const teams = () => cu<{ teams: Team[] }>("/team").then((r) => r.teams);
+
+/** membros do workspace (para escolher o responsável padrão) */
+export async function members() {
+  const out: { id: number; name: string }[] = [];
+  for (const t of await teams()) for (const m of t.members) out.push({ id: m.user.id, name: m.user.username || m.user.email });
+  return out.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** prazo YYYY-MM-DD → 18h de Brasília (meia-noite UTC aparecia como o dia anterior no ClickUp) */
+export const dueMs = (day: string) => Date.parse(`${day}T18:00:00-03:00`);
+
+/** aceita id da tarefa ou link (app.clickup.com/t/<id> ou /t/<workspace>/<id>) */
+export function parseTaskId(input: string | null | undefined) {
+  const s = (input ?? "").trim();
+  if (!s) return null;
+  const m = s.match(/\/t\/(?:\d+\/)?([A-Za-z0-9_-]+)\/?(?:[?#].*)?$/);
+  return m ? m[1] : /^[A-Za-z0-9_-]+$/.test(s) ? s : null;
+}
+export const taskUrl = (id: string) => `https://app.clickup.com/t/${id}`;
+
+async function defaultAssignee() {
+  const { data } = await db().from("settings").select("value").eq("key", "clickup_default_assignee").maybeSingle();
+  const id = Number(data?.value);
+  return Number.isFinite(id) && id > 0 ? [id] : [];
+}
 export const spaces = (teamId: string) => cu<{ spaces: { id: string; name: string }[] }>(`/team/${teamId}/space?archived=false`).then((r) => r.spaces);
 export async function lists(spaceId: string) {
   const [folders, loose] = await Promise.all([
@@ -33,15 +59,19 @@ export async function allLists() {
   return out;
 }
 
-export async function createTask(input: { listId: string; name: string; description?: string; priority?: 1 | 2 | 3 | 4; dueDate?: string; tags?: string[]; clientId?: string | null; source?: string; by?: string }) {
+export async function createTask(input: { listId: string; name: string; description?: string; priority?: 1 | 2 | 3 | 4; dueDate?: string; tags?: string[]; assignees?: number[]; status?: string; clientId?: string | null; source?: string; by?: string }) {
+  const assignees = input.assignees?.length ? input.assignees : await defaultAssignee();
   const t = await cu<{ id: string; url: string; name: string }>(`/list/${input.listId}/task`, {
     method: "POST",
     body: {
       name: input.name.slice(0, 250),
       markdown_description: input.description,
       priority: input.priority,
-      due_date: input.dueDate ? Date.parse(input.dueDate) : undefined,
+      due_date: input.dueDate ? dueMs(input.dueDate) : undefined,
+      due_date_time: input.dueDate ? false : undefined,
       tags: input.tags,
+      assignees: assignees.length ? assignees : undefined,
+      status: input.status || undefined, // vazio = primeiro status da lista
     },
   });
   await db().from("clickup_tasks").insert({ client_id: input.clientId ?? null, task_id: t.id, url: t.url, name: t.name, source: input.source ?? "manual", created_by: input.by ?? null });

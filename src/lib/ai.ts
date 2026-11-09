@@ -1,7 +1,7 @@
 import "server-only";
 import { anthropic } from "@ai-sdk/anthropic";
 import { generateText, isStepCount, tool } from "ai";
-import { createTask } from "./clickup";
+import { commentTask, createTask, taskUrl } from "./clickup";
 import { compare, performance } from "./report";
 import { db } from "./supabase/server";
 
@@ -21,7 +21,7 @@ export async function analyze(opts: { since: string; until: string; clientId?: s
     compare(f, "platform"),
     performance(f, "campaign"),
     performance(f, "day"),
-    opts.clientId ? db().from("clients").select("name, clickup_list_id, monthly_budget, notes").eq("id", opts.clientId).maybeSingle().then((r) => r.data) : null,
+    opts.clientId ? db().from("clients").select("name, clickup_list_id, clickup_report_task_id, monthly_budget, notes").eq("id", opts.clientId).maybeSingle().then((r) => r.data) : null,
   ]);
   if (!campaigns.rows.length) return { content: "Sem dados no período. Conecte contas e rode a sincronização.", task: null };
   const data = {
@@ -32,8 +32,13 @@ export async function analyze(opts: { since: string; until: string; clientId?: s
   const { text } = await generateText({ model: anthropic(AI_MODEL), system: SYSTEM, prompt: `Dados (JSON):\n${JSON.stringify(data)}` });
   let task: { id: string; url: string } | null = null;
   const listId = client?.clickup_list_id ?? (await db().from("settings").select("value").eq("key", "clickup_default_list").maybeSingle()).data?.value;
-  if (opts.sendToClickUp && listId) {
-    task = await createTask({ listId: String(listId), name: `📊 Relatório de tráfego — ${data.cliente} — ${f.since} a ${f.until}`, description: text, clientId: opts.clientId ?? null, source: "ai", by: opts.by, tags: ["relatorio-ia"] });
+  const title = `📊 Relatório de tráfego — ${data.cliente} — ${f.since === f.until ? f.since : `${f.since} a ${f.until}`}`;
+  if (opts.sendToClickUp && client?.clickup_report_task_id) {
+    // padrão da equipe: relatório como comentário na tarefa do cliente (Gestão de Clientes), sem criar tarefa nova por dia
+    await commentTask(client.clickup_report_task_id, `${title}\n\n${text}`);
+    task = { id: client.clickup_report_task_id, url: taskUrl(client.clickup_report_task_id) };
+  } else if (opts.sendToClickUp && listId) {
+    task = await createTask({ listId: String(listId), name: title, description: text, clientId: opts.clientId ?? null, source: "ai", by: opts.by, tags: ["relatorio-ia"] });
   }
   await db().from("ai_reports").insert({ client_id: opts.clientId ?? null, since: f.since, until: f.until, model: AI_MODEL, content: text, clickup_task_id: task?.id ?? null, created_by: opts.by });
   return { content: text, task };
