@@ -37,10 +37,11 @@ export async function crmResults(opts: { since: string; until: string; clientId?
   const slugs = clients.map((c) => c.tslug);
   const where = `client_slug = any($1) and day between $2 and $3`;
   const group = `client_slug, source, meta_campaign_id, utm_campaign, utm_source, has_gclid`;
-  const [leads, sales, perClient] = await Promise.all([
+  const [leads, sales, perClient, lastSale] = await Promise.all([
     query<Agg>(`select ${group}, sum(leads)::int leads, sum(leads_sold)::int leads_sold, sum(leads_lost)::int leads_lost from fads.lead_daily where ${where} group by ${group}`, [slugs, opts.since, opts.until]),
     query<Agg>(`select ${group}, sum(sales)::int sales, sum(revenue) revenue, sum(repeat_sales)::int repeat_sales from fads.sale_daily where ${where} group by ${group}`, [slugs, opts.since, opts.until]),
     Promise.all(clients.map((c) => performance({ since: opts.since, until: opts.until, clientId: c.id }, "campaign").then((p) => [c.id, p.rows] as const))).then((x) => new Map(x)),
+    query<{ client_slug: string; day: string }>(`select client_slug, to_char(max(day), 'YYYY-MM-DD') as day from fads.sale_daily where client_slug = any($1) group by 1`, [slugs]).then((r) => new Map(r.map((x) => [x.client_slug, x.day]))),
   ]);
 
   return {
@@ -61,8 +62,11 @@ export async function crmResults(opts: { since: string; until: string; clientId?
       const totalLeads = sum(L, "leads"), totalSales = sum(S, "sales"), revenue = round(sum(S, "revenue"));
       const attributed = sum(L.filter((x) => x.meta_campaign_id || x.utm_campaign || x.has_gclid), "leads");
       const bySource = Object.entries(L.reduce<Record<string, number>>((o, r) => ({ ...o, [r.source]: (o[r.source] ?? 0) + Number(r.leads) }), {})).map(([origem, leads]) => ({ origem, leads }));
+      const ultimaVenda = lastSale.get(c.tslug) ?? null;
       return {
         cliente: c.name, clientId: c.id,
+        // vendas lançadas com atraso: se a última venda registrada é anterior ao período, "0 vendas" não é confiável
+        ultimaVendaRegistrada: ultimaVenda, vendasPossivelmenteNaoLancadas: !!ultimaVenda && totalSales === 0 && ultimaVenda < opts.since,
         gasto: spend, leads: totalLeads, leadsVendidos: sum(L, "leads_sold"), leadsPerdidos: sum(L, "leads_lost"),
         vendas: totalSales, recompras: sum(S, "repeat_sales"), faturamento: revenue,
         cpl: cost(spend, totalLeads), custoPorVenda: cost(spend, totalSales), roas: spend > 0 ? div(revenue, spend) : null, taxaConversao: totalLeads ? round((totalSales / totalLeads) * 100) : null,

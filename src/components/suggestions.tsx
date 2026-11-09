@@ -1,8 +1,8 @@
-import { Lightbulb, PauseCircle, Rocket, Link2, Radar, TrendingDown, X, ListPlus } from "lucide-react";
+import { Lightbulb, PauseCircle, Rocket, Link2, Radar, Receipt, TrendingDown, X, ListPlus } from "lucide-react";
 import { dismissSuggestion, suggestionToTask } from "@/app/(app)/actions";
 import { SUGGESTION_LABEL, type Suggestion } from "@/lib/suggestions";
 
-const ICON = { pausar: PauseCircle, escalar: Rocket, cpl: TrendingDown, crm: Radar, tracking: Radar, vincular: Link2 };
+const ICON = { pausar: PauseCircle, escalar: Rocket, cpl: TrendingDown, crm: Radar, tracking: Radar, vincular: Link2, vendas: Receipt };
 const TONE = { alta: "border-bad/40 bg-bad/10 text-bad", media: "border-google/40 bg-google/10 text-google", baixa: "border-line bg-white/5 text-muted" };
 const GOOD = "border-good/40 bg-good/10 text-good";
 const tone = (s: Suggestion) => (s.tipo === "escalar" ? GOOD : TONE[s.severidade]);

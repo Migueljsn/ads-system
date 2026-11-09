@@ -19,7 +19,8 @@ const SYSTEM = `Você é um gestor de tráfego sênior da Fonil Group analisando
 Responda em português do Brasil, direto e acionável. Use números do dado fornecido (nunca invente).
 Estruture: 1) Resumo executivo (3 linhas), 2) O que melhorou/piorou vs período anterior, 3) Alertas (gasto sem conversão, CPA subindo, CTR baixo, campanhas com gasto alto e ROAS < 1), 4) Recomendações priorizadas (pausar, escalar, testar criativo, ajustar orçamento), com o nome exato da campanha.
 Valores monetários estão na moeda da conta (normalmente BRL).
-Quando houver "crm" nos dados, use-o como verdade de negócio: leads e vendas reais do CRM, CPL real, custo por venda e ROAS real (faturamento/gasto). Aponte divergências entre conversões da plataforma e leads do CRM e baixo % de leads com campanha identificada (problema de tracking/UTM).`;
+Quando houver "crm" nos dados, use-o como verdade de negócio: leads e vendas reais do CRM, CPL real, custo por venda e ROAS real (faturamento/gasto). Aponte divergências entre conversões da plataforma e leads do CRM e baixo % de leads com campanha identificada (problema de tracking/UTM).
+Se "vendasPossivelmenteNaoLancadas" for true (última venda registrada antes do período), NÃO conclua que as vendas/faturamento caíram a zero: diga que as vendas do período ainda não foram lançadas no CRM (informe a data da última venda) e recomende lançá-las; avalie o período só por leads e CPL.`;
 
 /** relatório de IA do período (todas as contas ou de um cliente); opcionalmente vira tarefa no ClickUp */
 export async function analyze(opts: { since: string; until: string; clientId?: string; sendToClickUp?: boolean; by: string }) {

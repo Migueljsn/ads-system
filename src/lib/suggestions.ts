@@ -8,12 +8,12 @@ import { crmResults, trackingEnabled } from "./tracking";
  * dispensar ou transformar em tarefa grava em suggestion_actions e ela some por 14 dias.
  */
 export type Suggestion = {
-  key: string; tipo: "pausar" | "escalar" | "cpl" | "crm" | "tracking" | "vincular";
+  key: string; tipo: "pausar" | "escalar" | "cpl" | "crm" | "tracking" | "vincular" | "vendas";
   severidade: "alta" | "media" | "baixa"; titulo: string; detalhe: string;
   cliente: string; clientId: string; campanha?: string; area: string;
 };
 export const SUGGESTION_LABEL: Record<Suggestion["tipo"], string> = {
-  pausar: "Avaliar pausar", escalar: "Escalar", cpl: "CPL alto", crm: "Leads não chegam no CRM", tracking: "Corrigir UTMs", vincular: "Vincular conta",
+  pausar: "Avaliar pausar", escalar: "Escalar", cpl: "CPL alto", crm: "Leads não chegam no CRM", tracking: "Corrigir UTMs", vincular: "Vincular conta", vendas: "Lançar vendas",
 };
 const brl = (n: number | null) => (n == null ? "—" : n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
 const order = { alta: 0, media: 1, baixa: 2 };
@@ -30,6 +30,8 @@ export async function suggestions(opts: { since?: string; until?: string; client
       out.push({ ...base, key: `vincular:${c.clientId}`, tipo: "vincular", severidade: "media", area: "Integração", titulo: `${c.cliente}: ${c.leads} leads no CRM e nenhum gasto vinculado`, detalhe: `Vincule a conta de anúncio do cliente em Contas para medir CPL e ROAS reais (${periodo}).` });
     if (c.leads >= 10 && c.leadsComCampanhaPct != null && c.leadsComCampanhaPct < 50)
       out.push({ ...base, key: `tracking:${c.clientId}`, tipo: "tracking", severidade: "alta", area: "Páginas e CRM", titulo: `${c.cliente}: só ${c.leadsComCampanhaPct}% dos leads com campanha identificada`, detalhe: `Sem UTM/ID de campanha não dá para saber qual anúncio vende. Revisar parâmetros de URL dos anúncios e repasse nas páginas/quiz (${periodo}).` });
+    if (c.vendasPossivelmenteNaoLancadas && c.leads > 0)
+      out.push({ ...base, key: `vendas:${c.clientId}:${c.ultimaVendaRegistrada}`, tipo: "vendas", severidade: "alta", area: "Comercial", titulo: `${c.cliente}: nenhuma venda lançada no CRM desde ${c.ultimaVendaRegistrada!.split("-").reverse().join("/")}`, detalhe: `${c.leads} leads no período e 0 vendas registradas. Sem as vendas, custo por venda e ROAS real ficam zerados e as análises erram. Lançar as vendas no Fonil CRM.` });
     const attributionOk = (c.leadsComCampanhaPct ?? 0) >= 30;
     const camps = c.campanhas;
     const cSpend = camps.reduce((t, r) => t + r.gasto, 0), cRev = camps.reduce((t, r) => t + r.faturamento, 0), cLeads = camps.reduce((t, r) => t + r.leadsCRM, 0);
