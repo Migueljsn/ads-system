@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/page-header";
 import { ActionForm } from "@/components/action-form";
-import { aiEnabled } from "@/lib/ai";
+import { AI_PROVIDER_LABEL, aiEnabled } from "@/lib/ai";
 import { requireUser } from "@/lib/auth";
 import { allLists, members } from "@/lib/clickup";
 import { adminEmails } from "@/lib/env";
@@ -16,7 +16,7 @@ export default async function Config() {
   ]);
   const s = Object.fromEntries((rows ?? []).map((r) => [r.key, r.value]));
   const status = [
-    ["Supabase", true], ["ClickUp", Boolean(process.env.CLICKUP_API_TOKEN) && lists.length > 0], ["IA (Anthropic)", aiEnabled()], ["E-mail (Resend)", Boolean(process.env.RESEND_API_KEY)],
+    ["Supabase", true], ["ClickUp", Boolean(process.env.CLICKUP_API_TOKEN) && lists.length > 0], [`IA (${AI_PROVIDER_LABEL})`, aiEnabled()], ["E-mail (Resend)", Boolean(process.env.RESEND_API_KEY)],
     ["Google OAuth (opcional)", Boolean(process.env.GOOGLE_OAUTH_CLIENT_ID)],
   ] as const;
   return (

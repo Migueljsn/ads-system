@@ -8,7 +8,7 @@ export const maxDuration = 300;
 /** 08:00 BRT: relatório de IA de ontem (vs. anteontem) para cada cliente com relatório diário ligado → ClickUp (comentário na tarefa do cliente, ou tarefa nova na lista dele) */
 export async function GET(req: Request) {
   if (!cronOk(req)) return new Response(null, { status: 401 });
-  if (!aiEnabled()) return Response.json({ skipped: "sem ANTHROPIC_API_KEY" });
+  if (!aiEnabled()) return Response.json({ skipped: "sem chave de IA (OPENAI_API_KEY ou ANTHROPIC_API_KEY)" });
   const { data: flag } = await db().from("settings").select("value").eq("key", "daily_report_enabled").maybeSingle();
   if (flag?.value !== true) return Response.json({ skipped: "relatório diário desligado" });
   const { data: clients } = await db().from("clients").select("id, name").eq("active", true).or("clickup_list_id.not.is.null,clickup_report_task_id.not.is.null");

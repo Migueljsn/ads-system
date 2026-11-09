@@ -15,7 +15,7 @@ export default async function AI() {
     return (
       <div className="card">
         <h1 className="mb-2 text-xl font-bold">Assistente IA</h1>
-        <p className="text-sm">A IA interna está desligada: defina <code>ANTHROPIC_API_KEY</code> nas variáveis do EasyPanel. Enquanto isso, use o <a href="/mcp" className="text-brand underline">servidor MCP</a> com o Claude — ele tem acesso às mesmas ferramentas.</p>
+        <p className="text-sm">A IA interna está desligada: defina <code>OPENAI_API_KEY</code> (ou <code>ANTHROPIC_API_KEY</code>) nas variáveis do EasyPanel. Enquanto isso, use o <a href="/mcp" className="text-brand underline">servidor MCP</a> com o Claude — ele tem acesso às mesmas ferramentas.</p>
       </div>
     );
   return (
