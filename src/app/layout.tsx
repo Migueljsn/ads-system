@@ -19,8 +19,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const [h, c] = await Promise.all([headers(), cookies()]);
   const pref = c.get("tv")?.value; // ?tv=1 / ?tv=0 força o modo (gravado pelo proxy)
   const tv = pref ? pref === "1" : TV_UA.test(h.get("user-agent") ?? "");
+  const z = Number(c.get("zoom")?.value);
+  const zoom = z >= 50 && z <= 150 ? z / 100 : null; // ?zoom=90 etc. (gravado pelo proxy)
   return (
-    <html lang="pt-BR" suppressHydrationWarning className={`${inter.variable}${tv ? " tv" : ""}`}>
+    <html lang="pt-BR" suppressHydrationWarning className={`${inter.variable}${tv ? " tv" : ""}`} style={zoom ? ({ zoom } as React.CSSProperties) : undefined}>
       <head>
         {/* precisa rodar antes dos scripts do Next: TVs antigas não têm globalThis, queueMicrotask, Array.at… */}
         <script dangerouslySetInnerHTML={{ __html: LEGACY_POLYFILLS }} />

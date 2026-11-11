@@ -17,6 +17,17 @@ export async function proxy(req: NextRequest) {
     r.cookies.set("tv", tv, { path: "/", maxAge: 31536000, sameSite: "lax" });
     return r;
   }
+  // tamanho na TV: ?zoom=80…150 (%), ?zoom=0 volta ao padrão
+  const zoom = req.nextUrl.searchParams.get("zoom");
+  if (zoom !== null && /^\d{1,3}$/.test(zoom)) {
+    const clean = req.nextUrl.clone();
+    clean.searchParams.delete("zoom");
+    const r = NextResponse.redirect(clean);
+    const z = Math.min(150, Math.max(50, Number(zoom)));
+    if (zoom === "0") r.cookies.delete("zoom");
+    else r.cookies.set("zoom", String(z), { path: "/", maxAge: 31536000, sameSite: "lax" });
+    return r;
+  }
   let res = NextResponse.next({ request: req });
   const sb = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookies: {
