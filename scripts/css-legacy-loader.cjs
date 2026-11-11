@@ -139,10 +139,11 @@ function flexGapFallback(css) {
   for (const m of css.matchAll(/\.(gap(?:-[xy])?-[^\s{,:]+)\s*\{\s*((?:row-|column-)?gap)\s*:\s*([^;}]+);?\s*\}/g)) {
     const [, cls, prop, val] = m;
     const sel = `.${cls}`;
-    const row = [`.no-flexgap .flex${sel}>*+*`, `.no-flexgap .inline-flex${sel}>*+*`];
+    // linha: margem à direita de cada filho menos o último ; ícones (svg) sempre, porque o texto solto depois deles não conta como filho
+    const row = [`.no-flexgap .flex${sel}>:not(:last-child)`, `.no-flexgap .inline-flex${sel}>:not(:last-child)`, `.no-flexgap .flex${sel}>svg`, `.no-flexgap .inline-flex${sel}>svg`];
     const col = [`.no-flexgap .flex-col${sel}>*+*`, `.no-flexgap [class~="md:flex-col"]${sel}>*+*`];
-    if (prop !== "row-gap") rules.push(`${row.join(",")}{margin-left:${val}}`);
-    if (prop !== "column-gap") rules.push(`${col.join(",")}{margin-left:0;margin-top:${val}}`, `.no-flexgap .flex-wrap${sel}>*{margin-bottom:${val}}`);
+    if (prop !== "row-gap") rules.push(`${row.join(",")}{margin-right:${val}}`);
+    if (prop !== "column-gap") rules.push(`${col.join(",")}{margin-right:0;margin-top:${val}}`, `.no-flexgap .flex-wrap${sel}>*{margin-bottom:${val}}`);
   }
   return rules.length ? `${css}\n/* flex gap para TVs antigas */\n${rules.join("\n")}\n` : css;
 }

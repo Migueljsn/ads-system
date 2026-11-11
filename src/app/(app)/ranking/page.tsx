@@ -17,7 +17,22 @@ function period(p: string | undefined) {
   const dow = (new Date(`${today}T12:00:00Z`).getUTCDay() + 6) % 7; // segunda = 0
   return { since: daysAgo(dow), until: today };
 }
-const MEDAL = ["🥇", "🥈", "🥉"];
+// medalha em CSS (emoji vira um quadrado em TVs sem fonte de emoji)
+const MEDAL_COLORS = [
+  ["#fde68a", "#d97706"],
+  ["#e5e7eb", "#6b7280"],
+  ["#fed7aa", "#b45309"],
+];
+function Medal({ i, size = 28 }: { i: number; size?: number }) {
+  const c = MEDAL_COLORS[i];
+  if (!c) return <span className="tabular-nums">{i + 1}</span>;
+  return (
+    <span title={`${i + 1}º lugar`} className="inline-grid shrink-0 place-items-center rounded-full font-bold text-black/80"
+      style={{ width: size, height: size, fontSize: size * 0.5, background: `radial-gradient(circle at 35% 30%, ${c[0]}, ${c[1]})`, boxShadow: `0 0 0 2px ${c[1]}55` }}>
+      {i + 1}
+    </span>
+  );
+}
 
 export default async function Ranking({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
@@ -39,7 +54,7 @@ export default async function Ranking({ searchParams }: { searchParams: SP }) {
           <div className="mb-6 grid gap-3 md:grid-cols-3">
             {rk.ranking.slice(0, 3).map((r, i) => (
               <div key={r.id} className={`card relative overflow-hidden ${i === 0 ? "border-brand/50 bg-gradient-to-br from-brand/20 to-transparent" : ""}`}>
-                <div className="flex items-center justify-between"><span className="text-3xl">{MEDAL[i]}</span><span className="text-3xl font-bold tabular-nums">{num(r.pontos)}<span className="ml-1 text-sm font-normal text-muted">pts</span></span></div>
+                <div className="flex items-center justify-between"><Medal i={i} size={40} /><span className="text-3xl font-bold tabular-nums">{num(r.pontos)}<span className="ml-1 text-sm font-normal text-muted">pts</span></span></div>
                 <div className="mt-2 text-lg font-semibold">{r.nome}</div>
                 <div className="mt-1 text-xs text-muted">{r.entregas} entregas · {r.pctNoPrazo == null ? "sem prazo" : `${r.pctNoPrazo}% no prazo`}{r.atrasadasAbertas ? ` · ${r.atrasadasAbertas} atrasadas` : ""}</div>
               </div>
@@ -51,7 +66,7 @@ export default async function Ranking({ searchParams }: { searchParams: SP }) {
               <thead className="text-left text-xs text-muted"><tr><th className="py-2 pr-3">#</th><th className="pr-3">Pessoa</th><th className="pr-3 text-right">Pontos</th><th className="pr-3 text-right">Entregas</th><th className="pr-3 text-right"><Clock size={12} className="inline" /> No prazo</th><th className="pr-3 text-right"><AlertTriangle size={12} className="inline" /> Atrasadas abertas</th><th className="pr-3">Áreas</th><th>Últimas entregas</th></tr></thead>
               <tbody>{rk.ranking.map((r, i) => (
                 <tr key={r.id} className="border-t border-line align-top">
-                  <td className="py-2 pr-3">{MEDAL[i] ?? i + 1}</td><td className="pr-3 font-medium">{r.nome}</td><td className="pr-3 text-right font-semibold">{num(r.pontos)}</td><td className="pr-3 text-right">{r.entregas}</td>
+                  <td className="py-2 pr-3"><Medal i={i} size={24} /></td><td className="pr-3 font-medium">{r.nome}</td><td className="pr-3 text-right font-semibold">{num(r.pontos)}</td><td className="pr-3 text-right">{r.entregas}</td>
                   <td className="pr-3 text-right">{r.pctNoPrazo == null ? "—" : `${r.pctNoPrazo}%`}</td><td className={`pr-3 text-right ${r.atrasadasAbertas ? "text-bad" : ""}`}>{r.atrasadasAbertas}</td>
                   <td className="pr-3 text-xs text-muted">{Object.entries(r.porArea).sort((a, b) => b[1] - a[1]).map(([a, n]) => `${a} (${n})`).join(" · ")}</td>
                   <td className="text-xs">{r.ultimas.map((u) => <div key={u.url}><a href={u.url} target="_blank" rel="noreferrer" className="hover:text-brand">{u.tarefa}</a> <span className="text-muted">+{u.pontos}</span></div>)}</td>

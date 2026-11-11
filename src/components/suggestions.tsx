@@ -23,7 +23,7 @@ export function SuggestionList({ items, limit, title = "Sugestões" }: { items: 
   return (
     <div className="card mb-6">
       <div className="card-title flex items-center gap-2"><Lightbulb size={16} className="text-brand" />{title}<span className="text-xs font-normal text-muted">({items.length})</span></div>
-      {!shown.length && <p className="text-sm text-muted">Nada pendente. 🎯</p>}
+      {!shown.length && <p className="text-sm text-muted">Nada pendente.</p>}
       <ul className="space-y-2">
         {shown.map((s) => {
           const Icon = ICON[s.tipo];
