@@ -61,3 +61,22 @@ table.t tbody tr { @apply transition-colors hover:bg-white/[0.025]; }
 table.t td.n, table.t th.n { @apply text-right tabular-nums; }
 table.t tr.total td { @apply border-b-0 bg-white/[0.03] font-semibold; }
 code { @apply rounded-md bg-white/[0.06] px-1.5 py-0.5 font-mono text-[12px]; }
+
+/* ---------- Modo TV (html.tv): navegador de Smart TV ou ?tv=1 ----------
+ * - escala tudo (inclusive tamanhos em px) para ler a 3 m do sofá; em TVs que expõem 960×540 a escala é menor
+ * - foco bem visível para navegar com as setas do controle remoto
+ * - sem blur/fundo fixo, que travam a GPU fraca das TVs */
+html.tv { zoom: 1.3; }
+@media (max-width: 1100px) { html.tv { zoom: 1; } }
+@media (min-width: 2400px) { html.tv { zoom: 2; } }
+html.tv body { background-attachment: scroll; }
+html.tv .backdrop-blur, html.tv .backdrop-blur-xl, html.tv .card { -webkit-backdrop-filter: none; backdrop-filter: none; }
+html.tv .card { background-color: var(--panel); }
+html.tv aside { background-color: var(--panel); }
+html.tv a:focus, html.tv button:focus, html.tv input:focus, html.tv select:focus, html.tv textarea:focus, html.tv [tabindex]:focus {
+  outline: 3px solid var(--brand-2);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(34, 211, 238, 0.25);
+}
+html.tv table.t tbody td, html.tv table.t thead th { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+

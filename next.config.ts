@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -5,7 +6,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   turbopack: {
     rules: {
-      "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" },
+      // loaders rodam da direita para a esquerda: Tailwind primeiro, depois tiramos os @layer (TVs não entendem)
+      "*.css": { loaders: [path.resolve("scripts/css-legacy-loader.cjs"), "@tailwindcss/turbopack"], as: "*.css" },
     },
   },
 };

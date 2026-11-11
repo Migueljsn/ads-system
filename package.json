@@ -35,5 +35,11 @@
     "pg": "^8.23.1",
     "tailwindcss": "^4",
     "typescript": "^5"
-  }
+  },
+  "browserslist": [
+    "chrome >= 69",
+    "edge >= 79",
+    "firefox >= 78",
+    "safari >= 13"
+  ]
 }
