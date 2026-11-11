@@ -22,4 +22,6 @@ def(Promise,"allSettled",function(ps){return Promise.all(Array.from(ps,function(
 def(Promise,"withResolvers",function(){var r={};r.promise=new Promise(function(a,b){r.resolve=a;r.reject=b;});return r;});
 if(typeof g.AggregateError==="undefined"){g.AggregateError=function(errors,msg){var e=new Error(msg);e.name="AggregateError";e.errors=Array.from(errors||[]);return e;};}
 def(Promise,"any",function(ps){return new Promise(function(res,rej){var a=Array.from(ps),n=a.length,errs=[];if(!n)return rej(new g.AggregateError([],"All promises were rejected"));a.forEach(function(p,i){Promise.resolve(p).then(res,function(e){errs[i]=e;if(--n===0)rej(new g.AggregateError(errs,"All promises were rejected"));});});});});
+// flex gap (Chromium < 84): sem ele os itens ficam colados; o CSS gera margens quando <html> tem .no-flexgap
+try{var d=document.createElement("div"),h=document.documentElement;d.style.cssText="display:flex;flex-direction:column;row-gap:1px;position:absolute;visibility:hidden";d.appendChild(document.createElement("div"));d.appendChild(document.createElement("div"));h.appendChild(d);if(d.scrollHeight!==1)h.classList.add("no-flexgap");h.removeChild(d);}catch(e){}
 })();`;

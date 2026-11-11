@@ -20,7 +20,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const pref = c.get("tv")?.value; // ?tv=1 / ?tv=0 força o modo (gravado pelo proxy)
   const tv = pref ? pref === "1" : TV_UA.test(h.get("user-agent") ?? "");
   return (
-    <html lang="pt-BR" className={`${inter.variable}${tv ? " tv" : ""}`}>
+    <html lang="pt-BR" suppressHydrationWarning className={`${inter.variable}${tv ? " tv" : ""}`}>
       <head>
         {/* precisa rodar antes dos scripts do Next: TVs antigas não têm globalThis, queueMicrotask, Array.at… */}
         <script dangerouslySetInnerHTML={{ __html: LEGACY_POLYFILLS }} />
