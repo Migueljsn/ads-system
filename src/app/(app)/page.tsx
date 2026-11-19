@@ -20,7 +20,7 @@ export default async function Home({ searchParams }: { searchParams: SP }) {
     { label: "Conversões", v: num(t.conversions, 1), c: cmp.change.conversions, good: true, icon: ShoppingCart },
     { label: "Custo por conversão", v: money(t.cpa, ccy), c: cmp.change.cpa, good: false, icon: Target },
     { label: "ROAS", v: t.roas == null ? "—" : `${num(t.roas, 2)}x`, c: cmp.change.roas, good: true, icon: TrendingUp },
-    { label: "Valor de conversão", v: money(t.conversionValue, ccy), c: cmp.change.conversionValue, good: true, icon: Repeat },
+    { label: "Valor de conversão", v: t.conversionValue ? money(t.conversionValue, ccy) : "—", c: cmp.change.conversionValue, good: true, icon: Repeat },
     { label: "Cliques", v: num(t.clicks), c: cmp.change.clicks, good: true, icon: MousePointerClick },
     { label: "CTR", v: t.ctr == null ? "—" : `${num(t.ctr, 2)}%`, c: cmp.change.ctr, good: true, icon: Percent },
     { label: "CPM", v: money(t.cpm, ccy), c: cmp.change.cpm, good: false, icon: Eye },

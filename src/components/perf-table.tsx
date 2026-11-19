@@ -22,7 +22,7 @@ export function PerfTable({ rows, totals, ccy = "BRL", showPlatform = true }: { 
       <td className="n">{num(r.impressions)}</td><td className="n">{num(r.clicks)}</td>
       <td className="n">{r.ctr == null ? "—" : `${num(r.ctr, 2)}%`}</td><td className="n">{money(r.cpc, ccy)}</td><td className="n">{money(r.cpm, ccy)}</td>
       <td className="n font-medium">{num(r.conversions, 1)}</td><td className="n">{money(r.cpa, ccy)}</td><td className="n">{num(r.leads)}</td><td className="n">{num(r.messages)}</td>
-      <td className="n">{money(r.conversionValue, ccy)}</td>
+      <td className="n">{r.conversionValue ? money(r.conversionValue, ccy) : "—"}</td>
       <td className="n">{r.roas == null ? "—" : <span className={`badge ${r.roas >= 1 ? "bg-good/15 text-good" : "bg-bad/15 text-bad"}`}>{num(r.roas, 2)}x</span>}</td>
     </tr>
   );

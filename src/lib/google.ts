@@ -124,6 +124,12 @@ type CampaignRow = { segments: { date: string }; campaign: { id: string; name?: 
 type AdGroupRow = CampaignRow & { adGroup: { id: string; name?: string } };
 const METRICS = "metrics.cost_micros, metrics.impressions, metrics.clicks, metrics.conversions, metrics.conversions_value";
 
+/*
+ * Conversão sem valor configurado no Google Ads vale R$ 1 por padrão (formulário de lead, ligação...): o "valor" fica
+ * igual ao número de conversões e o ROAS vira ~0,01x. Isso não é faturamento → guarda 0 e o painel mostra "—".
+ */
+const placeholderValue = (m: { conversions: number; value: number }) => m.value > 0 && Math.abs(m.value - m.conversions) < 0.01;
+
 export async function syncGoogle(opts: { since: string; until: string; trigger: string; accountId?: string }) {
   const sb = db();
   const { data: run } = await sb.from("sync_runs").insert({ provider: "google", trigger: opts.trigger }).select("id").single();
@@ -147,7 +153,7 @@ export async function syncGoogle(opts: { since: string; until: string; trigger: 
       const toRow = (r: CampaignRow, group: { id: string; name: string | null }, m: M) => ({
         account_id: acc.id, date: r.segments.date, campaign_id: r.campaign.id, campaign_name: r.campaign.name ?? null,
         campaign_type: r.campaign.advertisingChannelType ?? null, ad_group_id: group.id, ad_group_name: group.name,
-        cost: m.micros / 1e6, currency, impressions: m.impressions, clicks: m.clicks, conversions: m.conversions, conversions_value: m.value, synced_at: now,
+        cost: m.micros / 1e6, currency, impressions: m.impressions, clicks: m.clicks, conversions: m.conversions, conversions_value: placeholderValue(m) ? 0 : m.value, synced_at: now,
       });
       const out = [];
       const inGroups = new Map<string, M>();
