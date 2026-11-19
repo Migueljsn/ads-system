@@ -83,3 +83,10 @@ export const listTasks = (listId: string, includeClosed = false) =>
     .then((r) => r.tasks.map((t) => ({ id: t.id, name: t.name, status: t.status.status, url: t.url, due: t.due_date ? new Date(Number(t.due_date)).toISOString().slice(0, 10) : null, assignees: t.assignees.map((a) => a.username) })));
 
 export const commentTask = (taskId: string, text: string) => cu(`/task/${taskId}/comment`, { method: "POST", body: { comment_text: text } });
+
+/** checklist na tarefa, com um item por linha */
+export async function addChecklist(taskId: string, name: string, items: string[]) {
+  const { checklist } = await cu<{ checklist: { id: string } }>(`/task/${taskId}/checklist`, { method: "POST", body: { name } });
+  for (const item of items) await cu(`/checklist/${checklist.id}/checklist_item`, { method: "POST", body: { name: item.slice(0, 250) } });
+  return checklist.id;
+}
