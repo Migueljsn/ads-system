@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Bot, Building2, Funnel, ListChecks, KeyRound, Trophy, LogOut, Megaphone, Plug, Settings } from "lucide-react";
+import { BarChart3, Bot, Building2, Clock, Funnel, ListChecks, KeyRound, Trophy, LogOut, Megaphone, Plug, Settings } from "lucide-react";
 import { Logo } from "./logo";
 
 const NAV = [
@@ -10,6 +10,7 @@ const NAV = [
   { href: "/crm", label: "Resultados no CRM", icon: Funnel },
   { href: "/quiz", label: "Quizzes", icon: ListChecks },
   { href: "/ranking", label: "Ranking da equipe", icon: Trophy },
+  { href: "/horas", label: "Horas da equipe", icon: Clock },
   { href: "/ia", label: "Assistente IA", icon: Bot },
   { href: "/clientes", label: "Clientes", icon: Building2 },
   { href: "/contas", label: "Contas de anúncio", icon: Plug },
